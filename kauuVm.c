@@ -14,7 +14,7 @@ void open_bro() {
 		perror("cant get proccese id!");
 		exit(1);
 	} else if (pid ==0) {
-		execlp("chromium", "chromium", "--no-sandbox", NULL); //execlp is function to  replace prosses for new one
+		execlp("./start_bro.sh", "start_bro.sh", NULL); //execlp is function to  replace prosses for new one
 
 		perror("cant open browser!");
 		exit(1);
