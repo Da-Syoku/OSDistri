@@ -34,7 +34,7 @@ int main(void) {
 		XNextEvent(dis, &eve);
 
 		if(eve.type == MapRequest){
-			Window new_win = eve.x
+			Window new_win = eve.xmaprequest.window;
 		}
 	}
 	XCloseDisplay(dis);
