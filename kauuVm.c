@@ -10,7 +10,7 @@ void open_bro() {
         exit(1);
     } else if (pid == 0) {
         // --no-sandboxはテスト環境で役立つことが多い
-        execlp("chromium", "chromium", "--user-data-dir=/tmp/mywm-chromium-profile", "--no-sandbox", NULL);
+       // execlp("chromium", "chromium", "--user-data-dir=/tmp/mywm-chromium-profile", "--no-sandbox", NULL);
         perror("execlp failed");
         exit(1);
     }
