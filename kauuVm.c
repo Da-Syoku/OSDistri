@@ -1,67 +1,38 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <X11/Xlib.h>
-
-void open_bro() {
-    pid_t pid = fork();
-    if (pid == -1) {
-        perror("fork failed");
-        exit(1);
-    } else if (pid == 0) {
-        // --no-sandboxはテスト環境で役立つことが多い
-       // execlp("chromium", "chromium", "--user-data-dir=/tmp/mywm-chromium-profile", "--no-sandbox", NULL);
-        perror("execlp failed");
-        exit(1);
-    }
-}
 
 int main(void) {
     Display *dis;
-    Window root; // ルートウィンドウを格納する変数を追加
     XEvent eve;
 
     dis = XOpenDisplay(NULL);
     if (dis == NULL) {
+        // ログファイルに書き出されるように、fprintf(stderr, ...) を使う
         fprintf(stderr, "Cannot open display\n");
         exit(1);
     }
     
-    // デスクトップ全体（ルートウィンドウ）を取得
-    root = DefaultRootWindow(dis);
+    Window root = DefaultRootWindow(dis);
 
-    // --- ★ステップ1：ここが最重要★ ---
-    // Xサーバーに「新しいウィンドウの表示リクエストは私に送って」と宣言する
-    // SubstructureRedirectMask がそのための魔法の言葉
+    // ウィンドウマネージャーとして登録する
     XSelectInput(dis, root, SubstructureRedirectMask);
     
-    printf("ウィンドウマネージャーとして待機します。ブラウザを起動中...\n");
+    // 標準エラー出力にメッセージを出す（ログファイルで確認するため）
+    fprintf(stderr, "BareWM started. Waiting for windows...\n");
 
-    open_bro();
-
-    // --- ★ステップ2：イベントループを修正★ ---
+    // イベントループ
     while (1) {
-        // 次のイベントが来るまでここで待つ
         XNextEvent(dis, &eve);
 
-        // もしイベントが「ウィンドウ表示リクエスト(MapRequest)」なら
         if (eve.type == MapRequest) {
-            // イベント情報から、新しいウィンドウのIDを取り出す
-            Window new_win = eve.xmaprequest.window;
-
-            // ★目標達成！★
-            // これでウィンドウIDが手に入った！ターミナルに表示してみる
-            printf("新しいウィンドウを捕捉しました！ ウィンドウID: %lu\n", new_win);
-
-            // とりあえず、ウィンドウの表示を許可する
-            XMapWindow(dis, new_win);
-
-            // これで、変数 new_win を使って、このウィンドウを自由に操作できる！
-            // break; // とりあえず1つ捕まえたらループを抜けても良い
+            fprintf(stderr, "Caught a new window! ID: %lu\n", eve.xmaprequest.window);
+            
+            // ウィンドウの表示を許可するだけ
+            XMapWindow(dis, eve.xmaprequest.window);
         }
     }
 
-    printf("プログラムを終了します。\n");
-    XCloseDisplay(dis);
+    XCloseDisplay(dis); // この行には到達しないが、作法として記述
     return 0;
 }
