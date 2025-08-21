@@ -114,10 +114,10 @@ int main(void) {
                 wc->width = req->width;
                 wc->height = req->height;
                 wc->border_width = req->border_width;
-                    wc.sibling = req->above;
-                    wc.stack_mode = req->detail;
-                    
-                    XConfigureWindow(dpy, req->window, req->value_mask, &wc);
+                wc->sibling = req->above;
+                wc->stack_mode = req->detail;
+
+                    XConfigureWindow(dpy, req->window, req->value_mask, *wc);
                     printf("ConfigureRequest handled for window.\n");
                     break;
                 }
