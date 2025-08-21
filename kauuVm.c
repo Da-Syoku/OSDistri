@@ -108,16 +108,17 @@ int main(void) {
                 }
                  case ConfigureRequest: {
                 XConfigureRequestEvent *req = &ev.xconfigurerequest;
-                XWindowChanges* wc = malloc(sizeof(XWindowChanges));
-                wc->x = req->x;
-                wc->y = req->y;
-                wc->width = req->width;
-                wc->height = req->height;
-                wc->border_width = req->border_width;
-                wc->sibling = req->above;
-                wc->stack_mode = req->detail;
+                //XWindowChanges* wc = malloc(sizeof(XWindowChanges));
+                XWindowChanges wc;
+                wc.x = req->x;
+                wc.y = req->y;
+                wc.width = req->width;
+                wc.height = req->height;
+                wc.border_width = req->border_width;
+                wc.sibling = req->above;
+                wc.stack_mode = req->detail;
 
-                    XConfigureWindow(dpy, req->window, req->value_mask, *wc);
+                    XConfigureWindow(dpy, req->window, req->value_mask, &wc);
                     printf("ConfigureRequest handled for window.\n");
                     break;
                 }
