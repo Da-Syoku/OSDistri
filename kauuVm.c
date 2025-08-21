@@ -108,12 +108,12 @@ int main(void) {
                 }
                  case ConfigureRequest: {
                 XConfigureRequestEvent *req = &ev.xconfigurerequest;
-                XWindowChange wc;
-                wc.x = req->x;
-                    wc.y = req->y;
-                    wc.width = req->width;
-                    wc.height = req->height;
-                    wc.border_width = req->border_width;
+                XWindowChanges* wc = malloc(sizeof(XWindowChanges));
+                wc->x = req->x;
+                wc->y = req->y;
+                wc->width = req->width;
+                wc->height = req->height;
+                wc->border_width = req->border_width;
                     wc.sibling = req->above;
                     wc.stack_mode = req->detail;
                     
