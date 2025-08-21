@@ -117,7 +117,7 @@ int main(void) {
                 wc->sibling = req->above;
                 wc->stack_mode = req->detail;
 
-                    XConfigureWindow(dpy, req->window, req->value_mask, XWindiwChanges);
+                    XConfigureWindow(dpy, req->window, req->value_mask, *wc);
                     printf("ConfigureRequest handled for window.\n");
                     break;
                 }
