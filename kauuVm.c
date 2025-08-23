@@ -11,7 +11,13 @@ static Display *dpy;
 static volatile sig_atomic_t g_child_is_dead = 0;
 static Atom wm_protocols;
 static Atom wm_delete_window;
-
+static Atom net_wm_window_type;
+static Atom net_wm_window_type_dialog;
+static Atom net_wm_window_type_menu;
+static Atom net_wm_window_type_dropdown_menu;
+static Atom net_wm_window_type_popup_menu;
+static Atom net_wm_window_type_toolbar;
+static Atom net_wm_window_type_splash;
 // --- シグナルハンドラ ---
 // 子プロセスが終了したときにOSから送られるSIGCHLDシグナルを捕捉します
 void sigchld_handler(int sig) {
@@ -22,13 +28,13 @@ void sigchld_handler(int sig) {
     g_child_is_dead = 1;
 }
 
-// --- Chromiumを起動する関数 ---
-pid_t launch_chromium() {
+// --- Firefoxを起動する関数 ---
+pid_t launch_firefox() {
     pid_t pid = fork();
     if (pid == 0) { // 子プロセス
         // 実行するコマンドと引数を設定します
         char *const args[] = {"/usr/bin/firefox", NULL};
-        // execvpでChromiumを起動します。成功した場合、この先のコードは実行されません。
+        // execvpでFirefoxを起動します。成功した場合、この先のコードは実行されません。
         execvp(args[0], args);
         // execvpが失敗した場合のみ、以下のコードが実行されます
         perror("execvp failed");
@@ -39,6 +45,40 @@ pid_t launch_chromium() {
     }
     // 親プロセスは子プロセスのPIDを返します
     return pid;
+}
+
+int is_popup(Window win) {
+    Window transient_for;
+    // まず、従来のWM_TRANSIENT_FORヒントをチェックします
+    if (XGetTransientForHint(dpy, win, &transient_for)) {
+        return 1;
+    }
+
+    // 次に、_NET_WM_WINDOW_TYPEプロパティをチェックします
+    Atom actual_type;
+    int actual_format;
+    unsigned long nitems, bytes_after;
+    Atom *data = NULL;
+    int status = XGetWindowProperty(dpy, win, net_wm_window_type, 0L, sizeof(Atom), False, XA_ATOM,
+                                  &actual_type, &actual_format, &nitems, &bytes_after, (unsigned char **)&data);
+
+    if (status == Success && data) {
+        for (unsigned long i = 0; i < nitems; i++) {
+            if (data[i] == net_wm_window_type_dialog ||
+                data[i] == net_wm_window_type_menu ||
+                data[i] == net_wm_window_type_dropdown_menu ||
+                data[i] == net_wm_window_type_popup_menu ||
+                data[i] == net_wm_window_type_toolbar ||
+                data[i] == net_wm_window_type_splash)
+            {
+                XFree(data);
+                return 1; // ポップアップ系のウィンドウタイプならtrue
+            }
+        }
+        XFree(data);
+    }
+    
+    return 0; // どちらにも当てはまらなければ、メインウィンドウと判断
 }
 
 int main(void) {
@@ -55,6 +95,14 @@ int main(void) {
     wm_protocols = XInternAtom(dpy, "WM_PROTOCOLS", False);
     wm_delete_window = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
 
+    net_wm_window_type = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
+    net_wm_window_type_dialog = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
+    net_wm_window_type_menu = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_MENU", False);
+    net_wm_window_type_dropdown_menu = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DROPDOWN_MENU", False);
+    net_wm_window_type_popup_menu = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_POPUP_MENU", False);
+    net_wm_window_type_toolbar = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_TOOLBAR", False);
+    net_wm_window_type_splash = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_SPLASH", False);
+
     int screen = DefaultScreen(dpy);
     Window root_win = RootWindow(dpy, screen);
     unsigned int width = DisplayWidth(dpy, screen);
@@ -66,11 +114,11 @@ int main(void) {
     // メインの無限ループ。Chromiumが終了するたびにここから再起動します
     while (1) {
         g_child_is_dead = 0;
-        browser_pid = launch_chromium();
+        browser_pid = launch_firefox();
         browser_win = None; 
-        printf("Launched Chromium with PID: %d\n", browser_pid);
-        
-        // ★★★ 改善点①: ループを抜けるためのフラグを導入 ★★★
+        printf("Launched Firefox with PID: %d\n", browser_pid);
+
+
         int should_restart = 0;
 
         // 子プロセスが生きている間、イベントを処理し続けるループ
@@ -81,10 +129,13 @@ int main(void) {
             switch (ev.type) {
                 case MapRequest: {
                     Window win = ev.xmaprequest.window;
-                    Window transient_for;
-                    if (XGetTransientForHint(dpy, win, &transient_for)) {
+                    
+                    // ★★★ 改善: 新しい判定関数 is_popup() を使う ★★★
+                    if (is_popup(win)) {
+                        // ポップアップやメニューはそのまま表示
                         XMapWindow(dpy, win);
                     } else {
+                        // メインウィンドウと判断した場合の処理
                         browser_win = win;
                         printf("Main browser window ID: %lu\n", browser_win);
                         
@@ -105,7 +156,6 @@ int main(void) {
                 case ConfigureRequest: {
                     XConfigureRequestEvent *req = &ev.xconfigurerequest;
                     XWindowChanges wc;
-                    // ★★★ 修正点: `req.width` を `req->width` などに修正 ★★★
                     wc.x = req->x; wc.y = req->y; wc.width = req->width; wc.height = req->height;
                     wc.border_width = req->border_width; wc.sibling = req->above; wc.stack_mode = req->detail;
                     XConfigureWindow(dpy, req->window, req->value_mask, &wc);
@@ -123,14 +173,14 @@ int main(void) {
                             kill(browser_pid, SIGKILL);
                         }
                         browser_win = None;
-                        // ★★★ 改善点②: フラグを立てて、ループを抜ける準備をする ★★★
+                        
                         should_restart = 1;
                     }
                     break;
                 }
             } // switch
             
-            // ★★★ 改善点③: フラグが立っていたら、イベントループを抜ける ★★★
+            
             if (should_restart) {
                 break;
             }
