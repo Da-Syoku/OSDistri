@@ -12,6 +12,9 @@ static Display *dpy;
 static volatile sig_atomic_t g_child_is_dead = 0;
 static Atom wm_protocols;
 static Atom wm_delete_window;
+// ★★★ 追加: フォーカス管理用のAtom ★★★
+static Atom wm_take_focus;
+
 static Atom net_wm_window_type;
 static Atom net_wm_window_type_dialog;
 static Atom net_wm_window_type_menu;
@@ -19,49 +22,42 @@ static Atom net_wm_window_type_dropdown_menu;
 static Atom net_wm_window_type_popup_menu;
 static Atom net_wm_window_type_toolbar;
 static Atom net_wm_window_type_splash;
-static Atom wm_take_focus;
-// --- シグナルハンドラ ---
-// 子プロセスが終了したときにOSから送られるSIGCHLDシグナルを捕捉します
+
+
+// --- シグナルハンドラ --- (変更なし)
 void sigchld_handler(int sig) {
-    // waitpidで終了した子プロセスの情報を回収します（ゾンビプロセス化を防ぐため）
-    // WNOHANGを指定することで、終了した子プロセスがいない場合でもブロックしません
     while (waitpid(-1, NULL, WNOHANG) > 0);
-    // 子プロセスが終了したことを示すフラグを立てます
     g_child_is_dead = 1;
 }
 
-// --- Firefoxを起動する関数 ---
-pid_t launch_firefox() {
+// --- ブラウザを起動する関数 --- (変更なし)
+pid_t launch_browser() {
     pid_t pid = fork();
-    if (pid == 0) { // 子プロセス
-        // 実行するコマンドと引数を設定します
-        char *const args[] = {"/usr/bin/firefox", NULL};
-        // execvpでFirefoxを起動します。成功した場合、この先のコードは実行されません。
+    if (pid == 0) {
+        char *const args[] = {"/usr/bin/firefox", "--new-instance", NULL};
         execvp(args[0], args);
-        // execvpが失敗した場合のみ、以下のコードが実行されます
         perror("execvp failed");
         exit(1);
-    } else if (pid < 0) { // fork失敗
+    } else if (pid < 0) {
         perror("fork failed");
         exit(1);
     }
-    // 親プロセスは子プロセスのPIDを返します
     return pid;
 }
 
+// --- is_popup ヘルパー関数 --- (変更なし)
 int is_popup(Window win) {
     Window transient_for;
-    // まず、従来のWM_TRANSIENT_FORヒントをチェックします
     if (XGetTransientForHint(dpy, win, &transient_for)) {
         return 1;
     }
 
-    // 次に、_NET_WM_WINDOW_TYPEプロパティをチェックします
     Atom actual_type;
     int actual_format;
     unsigned long nitems, bytes_after;
     Atom *data = NULL;
-    int status = XGetWindowProperty(dpy, win, net_wm_window_type, 0L, sizeof(Atom), False, XA_ATOM, &actual_type, &actual_format, &nitems, &bytes_after, (unsigned char **)&data);
+    int status = XGetWindowProperty(dpy, win, net_wm_window_type, 0L, sizeof(Atom), False, XA_ATOM,
+                                  &actual_type, &actual_format, &nitems, &bytes_after, (unsigned char **)&data);
 
     if (status == Success && data) {
         for (unsigned long i = 0; i < nitems; i++) {
@@ -73,14 +69,15 @@ int is_popup(Window win) {
                 data[i] == net_wm_window_type_splash)
             {
                 XFree(data);
-                return 1; // ポップアップ系のウィンドウタイプならtrue
+                return 1;
             }
         }
         XFree(data);
     }
     
-    return 0; // どちらにも当てはまらなければ、メインウィンドウと判断
+    return 0;
 }
+
 
 int main(void) {
     pid_t browser_pid = -1;
@@ -95,9 +92,12 @@ int main(void) {
     
     wm_protocols = XInternAtom(dpy, "WM_PROTOCOLS", False);
     wm_delete_window = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
+    // ★★★ 追加: WM_TAKE_FOCUS の Atom を初期化 ★★★
     wm_take_focus = XInternAtom(dpy, "WM_TAKE_FOCUS", False);
+    
     net_wm_window_type = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
     net_wm_window_type_dialog = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
+    // (以下、他のAtom初期化は変更なし)
     net_wm_window_type_menu = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_MENU", False);
     net_wm_window_type_dropdown_menu = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DROPDOWN_MENU", False);
     net_wm_window_type_popup_menu = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_POPUP_MENU", False);
@@ -112,17 +112,15 @@ int main(void) {
     XSelectInput(dpy, root_win, SubstructureRedirectMask | SubstructureNotifyMask);
     XSync(dpy, False);
 
-    // メインの無限ループ。Chromiumが終了するたびにここから再起動します
     while (1) {
+        // ... (ループ開始部分は変更なし)
         g_child_is_dead = 0;
-        browser_pid = launch_firefox();
+        browser_pid = launch_browser();
         browser_win = None; 
-        printf("Launched Firefox with PID: %d\n", browser_pid);
-
-
+        printf("Launched Browser with PID: %d\n", browser_pid);
+        
         int should_restart = 0;
 
-        // 子プロセスが生きている間、イベントを処理し続けるループ
         while (!g_child_is_dead) {
             XEvent ev;
             XNextEvent(dpy, &ev);
@@ -131,18 +129,20 @@ int main(void) {
                 case MapRequest: {
                     Window win = ev.xmaprequest.window;
                     
-                    // ★★★ 改善: 新しい判定関数 is_popup() を使う ★★★
                     if (is_popup(win)) {
-                        // ポップアップやメニューはそのまま表示
                         XMapWindow(dpy, win);
                     } else {
-                        // メインウィンドウと判断した場合の処理
                         browser_win = win;
                         printf("Main browser window ID: %lu\n", browser_win);
+                        
+                        // ★★★ 変更: WM_TAKE_FOCUS をプロトコルに追加 ★★★
                         Atom protocols[] = {wm_delete_window, wm_take_focus};
                         XSetWMProtocols(dpy, win, protocols, 2);
+
                         XMoveResizeWindow(dpy, win, 0, 0, width, height);
                         XMapWindow(dpy, win);
+
+                        // ★★★ 追加: メインウィンドウに即座にフォーカスを当てる ★★★
                         XSetInputFocus(dpy, win, RevertToPointerRoot, CurrentTime);
                     }
                     break;
@@ -163,6 +163,7 @@ int main(void) {
                     }
                     break;
                 }
+                // ... (ConfigureRequest, UnmapNotify/DestroyNotify は変更なし) ...
                 case ConfigureRequest: {
                     XConfigureRequestEvent *req = &ev.xconfigurerequest;
                     XWindowChanges wc;
@@ -183,13 +184,11 @@ int main(void) {
                             kill(browser_pid, SIGKILL);
                         }
                         browser_win = None;
-                        
                         should_restart = 1;
                     }
                     break;
                 }
             } // switch
-            
             
             if (should_restart) {
                 break;
@@ -197,8 +196,7 @@ int main(void) {
         } // inner while
 
         printf("Browser process terminated. Relaunching...\n");
-
-        // プロセスが完全に終了するのを待つことで、より安定した再起動ができます
+        
         if (browser_pid != -1) {
            waitpid(browser_pid, NULL, 0);
         }
