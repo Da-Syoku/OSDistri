@@ -1,5 +1,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/Xatom.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -18,6 +19,7 @@ static Atom net_wm_window_type_dropdown_menu;
 static Atom net_wm_window_type_popup_menu;
 static Atom net_wm_window_type_toolbar;
 static Atom net_wm_window_type_splash;
+static Atom wm_take_focus;
 // --- シグナルハンドラ ---
 // 子プロセスが終了したときにOSから送られるSIGCHLDシグナルを捕捉します
 void sigchld_handler(int sig) {
@@ -59,8 +61,7 @@ int is_popup(Window win) {
     int actual_format;
     unsigned long nitems, bytes_after;
     Atom *data = NULL;
-    int status = XGetWindowProperty(dpy, win, net_wm_window_type, 0L, sizeof(Atom), False, XA_ATOM,
-                                  &actual_type, &actual_format, &nitems, &bytes_after, (unsigned char **)&data);
+    int status = XGetWindowProperty(dpy, win, net_wm_window_type, 0L, sizeof(Atom), False, XA_ATOM, &actual_type, &actual_format, &nitems, &bytes_after, (unsigned char **)&data);
 
     if (status == Success && data) {
         for (unsigned long i = 0; i < nitems; i++) {
@@ -94,7 +95,7 @@ int main(void) {
     
     wm_protocols = XInternAtom(dpy, "WM_PROTOCOLS", False);
     wm_delete_window = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
-
+    wm_take_focus = XInternAtom(dpy, "WM_TAKE_FOCUS", False);
     net_wm_window_type = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
     net_wm_window_type_dialog = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
     net_wm_window_type_menu = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_MENU", False);
@@ -138,17 +139,26 @@ int main(void) {
                         // メインウィンドウと判断した場合の処理
                         browser_win = win;
                         printf("Main browser window ID: %lu\n", browser_win);
-                        
-                        XSetWMProtocols(dpy, win, &wm_delete_window, 1);
+                        Atom protocols[] = {wm_delete_window, wm_take_focus};
+                        XSetWMProtocols(dpy, win, protocols, 2);
                         XMoveResizeWindow(dpy, win, 0, 0, width, height);
                         XMapWindow(dpy, win);
+                        XSetInputFocus(dpy, win, RevertToPointerRoot, CurrentTime);
                     }
                     break;
                 }
                 case ClientMessage: {
-                    if (ev.xclient.message_type == wm_protocols && (Atom)ev.xclient.data.l[0] == wm_delete_window) {
-                        if (browser_pid != -1) {
-                            kill(browser_pid, SIGTERM);
+                    // ★★★ 変更: WM_TAKE_FOCUS の処理を追加 ★★★
+                    if (ev.xclient.message_type == wm_protocols) {
+                        if ((Atom)ev.xclient.data.l[0] == wm_delete_window) {
+                            if (browser_pid != -1) {
+                                kill(browser_pid, SIGTERM);
+                            }
+                        } 
+                        else if ((Atom)ev.xclient.data.l[0] == wm_take_focus) {
+                            printf("WM_TAKE_FOCUS received for window %lu\n", ev.xclient.window);
+                            // アプリケーションからの要求に応じてフォーカスを設定
+                            XSetInputFocus(dpy, ev.xclient.window, RevertToPointerRoot, ev.xclient.data.l[1]);
                         }
                     }
                     break;
