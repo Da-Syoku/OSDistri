@@ -27,7 +27,7 @@ pid_t launch_chromium() {
     pid_t pid = fork();
     if (pid == 0) { // 子プロセス
         // 実行するコマンドと引数を設定します
-        char *const args[] = {"/usr/bin/chromium", "--no-first-run", "--no-sandbox", "--start-maximized", NULL};
+        char *const args[] = {"/usr/bin/firefox", NULL};
         // execvpでChromiumを起動します。成功した場合、この先のコードは実行されません。
         execvp(args[0], args);
         // execvpが失敗した場合のみ、以下のコードが実行されます
