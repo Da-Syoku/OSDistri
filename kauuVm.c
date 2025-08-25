@@ -92,7 +92,7 @@ int main(void) {
     
     wm_protocols = XInternAtom(dpy, "WM_PROTOCOLS", False);
     wm_delete_window = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
-    // ★★★ 追加: WM_TAKE_FOCUS の Atom を初期化 ★★★
+    // ★★★ 追加: WM_TAKE_FOCUS の Atom を初期化 ★★ ★
     wm_take_focus = XInternAtom(dpy, "WM_TAKE_FOCUS", False);
     
     net_wm_window_type = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
