@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <title>システムコントロールパネル</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: sans-serif; background-color: #f0f0f0; text-align: center; padding-top: 50px; }
+        .container { background-color: white; padding: 2em; margin: auto; max-width: 500px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        .buttons { display: flex; flex-direction: column; gap: 1em; margin-top: 2em; }
+        .button { display: block; padding: 1em; border-radius: 5px; text-decoration: none; color: white; font-weight: bold; transition: opacity 0.2s; }
+        .button:hover { opacity: 0.8; }
+        .shutdown { background-color: #d9534f; }
+        .reboot { background-color: #f0ad4e; }
+        .suspend { background-color: #0275d8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>システムコントロールパネル</h1>
+        <div class="buttons">
+            <a href="/cgi-bin/sys_ctl.py?action=shutdown" class="button shutdown">シャットダウン</a>
+            <a href="/cgi-bin/sys_ctl.py?action=reboot" class="button reboot">再起動</a>
+            <a href="/cgi-bin/sys_ctl.py?action=suspend" class="button suspend">S3スリープ</a>
+        </div>
+    </div>
+</body>
+</html>
