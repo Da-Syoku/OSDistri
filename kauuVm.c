@@ -7,6 +7,10 @@
 #include <signal.h>
 #include <sys/wait.h>
 
+#define WTYPE_NORMAL 0
+#define WTYPE_DIALOG 1
+#define WTYPE_POPUP  2
+
 // --- グローバル変数 ---
 static Display *dpy;
 static volatile sig_atomic_t g_child_is_dead = 0;
