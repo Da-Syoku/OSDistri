@@ -11,7 +11,7 @@
 
             async function fetchStatus() {
                try {
-                   const response = await fetch('/cgi-bin/get_status.py');
+                   const response = await fetch('/cgi-bin/get_st.py');
                    if (!response.ok) {
                    throw new Error(`HTTP error! status: ${response.status}`);
                   }
@@ -30,7 +30,7 @@
             function updateNetworkUI(networkData) {
              const networkDiv = document.getElementById('network-status');
               if (!networkData) {
-                  networkDiv.innerHTML = `<p>情報がありません。</p>`;
+                  networkDiv.innerHTML = `<p>情報ない。</p>`;
                    return;
               }
 
@@ -39,10 +39,10 @@
                   html += `<p><strong>${networkData.active_connection.name}</strong> (${networkData.active_connection.type})</p>`;
                  html += `<p>IPアドレス: ${networkData.active_connection.ip_address}</p>`;
               } else {
-                html += `<p>接続されていません。</p>`;
+                html += `<p>接続されん。</p>`;
              }
 
-             html += '<h3>利用可能なWi-Fi</h3>';
+             html += '<h3>使えるWi-Fi</h3>';
               if (networkData.wifi_networks && networkData.wifi_networks.length > 0) {
             html += '<ul style="list-style: none; padding: 0;">';
              networkData.wifi_networks.forEach(wifi => {
@@ -50,7 +50,7 @@
               });
                   html += '</ul>';
               } else {
-                  html += '<p>利用可能なWi-Fiネットワークはありません。</p>';
+                  html += '<p>wifiない</p>';
               }
 
             networkDiv.innerHTML = html;
