@@ -31,24 +31,23 @@
         <main class="content">
         <h1 style="width: auto; font-size: 2.5em; background-color: aliceblue; border: 1px solid #ccc; border-radius: 8px; padding: 0.5em;">システムダッシュボード</h1>
         <div class="description">
-        <h2 id="power">電源管理</h2>
+        <div class="set-sec"><h2 id="power">電源管理</h2>
         <div class="buttons">
             <a href="/cgi-bin/sys_ctl.py?action=shutdown" class="button shutdown">シャットダウン</a>
             <a href="/cgi-bin/sys_ctl.py?action=reboot" class="button reboot">再起動</a>
             <a href="/cgi-bin/sys_ctl.py?action=suspend" class="button suspend">スリープ</a>
-        </div>
-        <h2 id="cli">CLI,コマンドライン</h2>
+        </div></div>
+        <div class="set-sec"><h2 id="cli">CLI,コマンドライン</h2>
         <p><strong style="color: #f10800;">Ctrl+Alt+F7</strong>でこのブラウザ画面<br>
         <strong style="color: #3300ec;">Ctrl+Alt+F2</strong>でCLI画面に切り替えます<br>
         noVNCとかでブラウザ画面でを実装しなかったのは<br>
-        軽量シンプルを目指したのとめんどくさかったからです。</p>
-        <h2 id="network">ネットワーク</h2>
+        軽量シンプルを目指したのとめんどくさかったからです。</p></div>
+        <div class="set-sec"><h2 id="network">ネットワーク</h2>
         <div id="network-status">
            <p>読み込み中...</p>
-        </div>
          <hr style="margin: 2em 0;">
-    <h3>有線LAN設定</h3>
-    <form id="wired-lan-form" style="text-align: left; max-width: 400px; margin: auto;">
+          <h3>有線LAN設定</h3>
+         <form id="wired-lan-form" style="text-align: left; max-width: 400px; margin: auto;">
         <div style="margin-bottom: 1em;">
             <input type="radio" id="dhcp" name="ip_method" value="auto" checked>
             <label for="dhcp">DHCP (自動取得)</label>
@@ -70,18 +69,18 @@
         </div>
         
         <button type="submit" style="width: 100%; padding: 0.8em; margin-top: 1em; background-color: #5cb85c; color: white; border: none; border-radius: 5px; cursor: pointer;">設定を適用</button>
-    </form>
-    <div id="form-result" style="margin-top: 1em;"></div>
-        <h2 id="bluetooth">bluetooth</h2>
-        <p>まだ</p>
-        <h2 id="vol-bri">音量・明るさ</h2>
-        <p>まだ</p>
-        <h2 id="battery">バッテリー</h2>
-        <p>まだ</p>
-        <h2 id="updates">アップデート</h2>
-        <p>まだ</p>
-        <h2 id="input">入力・キーボード</h2>
-        <p>まだ</p>
+         </form>
+        <div id="form-result" style="margin-top: 1em;"></div></div></div>
+        <div class="set-sec"><h2 id="bluetooth">bluetooth</h2>
+        <p>まだ</p></div>
+        <div class="set-sec"><h2 id="vol-bri">音量・明るさ</h2>
+        <p>まだ</p></div>
+        <div class="set-sec"><h2 id="battery">バッテリー</h2>
+        <p>まだ</p></div>
+        <div class="set-sec"><h2 id="updates">アップデート</h2>
+        <p>まだ</p></div>
+        <div class="set-sec"><h2 id="input">入力・キーボード</h2>
+        <p>まだ</p></div>
         </div>
         </main>
     </article>
