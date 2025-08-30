@@ -3,76 +3,8 @@
 <head>
     <title>システムコントロールパネル</title>
     <meta charset="UTF-8">
-    <style>
-        * {margin: 0; 
-            padding: 0; 
-            box-sizing: border-box;}
-
-        body {height: 100vh;
-            background-color: rgb(255, 150, 130); 
-            font-family: sans-serif; 
-            text-align: center; 
-        }
-        .content {margin: 1em auto; }
-
-        .buttons { display: flex; flex-direction: column; gap: 1em; margin-top: 2em; }
-        .button { display: block; padding: 1em; 
-            text-decoration: none; 
-            color: rgb(71, 53, 53); font-weight: bold; transition: opacity 0.2s; }
-        .button:hover { opacity: 0.8; }
-        .shutdown { background-color: #d9534f; }
-        .reboot { background-color: #f0ad4e; }
-        .suspend { background-color: #0275d8; }
-        .toc { text-align: left; font-size: 1.4em; color: #333; font-weight: bold;}
-        .navi{
-            height: 100vh;
-             width: 70px;
-              position: fixed;
-              background-color: rgb(102, 184, 209); 
-              box-shadow: rgb(55, 155, 212);
-              overflow: hidden;
-              transition: all 0.3s ease-in-out;
-        }
-        .navi:hover {width: 300px; transition: width 0.1s;}
-        .navi .toc {position: absolute;
-            top: 0; 
-            left: 0;
-            width: 100%;
-         
-  
-        }
-        .navi .toc li {list-style-type: none;
-            display: block;
-            width: 100%;
-            position: relative;
-          
-        }
-        .navi .toc li.active { background-color: rgb(255, 150, 130);}
-        .navi .toc li:hover {background-color: #333;}
-        .navi .toc li a {text-decoration: none;
-            color: white;
-            width: 100%;
-            display: flex;
-            position: relative;}
-        .navi .toc li a .icon {
-            display: block;
-            min-width: 4px;
-            height: 6px;
-            line-height: 6px;
-        }
-        .navi .toc li a .icon img{
-            height: 60px;
-        }
-        .navi .toc li a .title {
-            height: 60px;
-            line-height: 60px;
-            white-space: nowrap;
-            padding-left: 10px;
-            margin-left: 60px;
-        }
-        article{display: flex;}
-
-    </style>
+    <link rel="stylesheet" href="style.css">
+   
 </head>
 <body>
     <article>
