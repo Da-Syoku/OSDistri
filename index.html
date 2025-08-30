@@ -4,25 +4,138 @@
     <title>システムコントロールパネル</title>
     <meta charset="UTF-8">
     <style>
-        body { font-family: sans-serif; background-color: #f0f0f0; text-align: center; padding-top: 50px; }
-        .container { background-color: white; padding: 2em; margin: auto; max-width: 500px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        h1 { color: #333; }
+        * {margin: 0; 
+            padding: 0; 
+            box-sizing: border-box;}
+
+        body {height: 100vh;
+            background-color: rgb(255, 150, 130); 
+            font-family: sans-serif; 
+            text-align: center; 
+        }
+        .content {margin: 1em auto; }
+
         .buttons { display: flex; flex-direction: column; gap: 1em; margin-top: 2em; }
-        .button { display: block; padding: 1em; border-radius: 5px; text-decoration: none; color: white; font-weight: bold; transition: opacity 0.2s; }
+        .button { display: block; padding: 1em; 
+            text-decoration: none; 
+            color: rgb(71, 53, 53); font-weight: bold; transition: opacity 0.2s; }
         .button:hover { opacity: 0.8; }
         .shutdown { background-color: #d9534f; }
         .reboot { background-color: #f0ad4e; }
         .suspend { background-color: #0275d8; }
+        .toc { text-align: left; font-size: 1.4em; color: #333; font-weight: bold;}
+        .navi{
+            height: 100vh;
+             width: 70px;
+              position: fixed;
+              background-color: rgb(102, 184, 209); 
+              box-shadow: rgb(55, 155, 212);
+              overflow: hidden;
+              transition: all 0.3s ease-in-out;
+        }
+        .navi:hover {width: 300px; transition: width 0.1s;}
+        .navi .toc {position: absolute;
+            top: 0; 
+            left: 0;
+            width: 100%;
+         
+  
+        }
+        .navi .toc li {list-style-type: none;
+            display: block;
+            width: 100%;
+            position: relative;
+          
+        }
+        .navi .toc li.active { background-color: rgb(255, 150, 130);}
+        .navi .toc li:hover {background-color: #333;}
+        .navi .toc li a {text-decoration: none;
+            color: white;
+            width: 100%;
+            display: flex;
+            position: relative;}
+        .navi .toc li a .icon {
+            display: block;
+            min-width: 4px;
+            height: 6px;
+            line-height: 6px;
+        }
+        .navi .toc li a .icon img{
+            height: 60px;
+        }
+        .navi .toc li a .title {
+            height: 60px;
+            line-height: 60px;
+            white-space: nowrap;
+            padding-left: 10px;
+            margin-left: 60px;
+        }
+        article{display: flex;}
+
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>システムコントロールパネル</h1>
+    <article>
+        <aside class="navi">
+        <ol class="toc">
+            <li><a href="#power"><span class="icon"><img src="image/battery-icon.png" alt="電源管理"></span>
+                <span class="title">電源管理</span></a></li>
+            <li><a href="#cli"><span class="icon"><img src="image/cli-icon.png" alt="CLI,コマンドライン"></span>
+                <span class="title">CLI,コマンドライン</span></a></li>
+            <li><a href="#network"><span class="icon"><img src="image/network-icon.png" alt="ネットワーク"></span>
+                <span class="title">ネットワーク</span></a></li>
+            <li><a href="#bluetooth"><span class="icon"><img src="image/bluetooth-icon.png" alt="bluetooth"></span>
+                <span class="title">bluetooth</span></a></li>
+            <li><a href="#vol-bri"><span class="icon"><img src="image/vol-bri-icon.png" alt="音量・明るさ"></span>
+                <span class="title">音量・明るさ</span></a></li>
+            <li><a href="#battery"><span class="icon"><img src="image/battery-icon.png" alt="バッテリー"></span>
+                <span class="title">バッテリー</span></a></li>
+            <li><a href="#updates"><span class="icon"><img src="image/update-icon.png" alt="アップデート"></span>
+                <span class="title">アップデート</span></a></li>
+            <li><a href="#input"><span class="icon"><img src="image/input-icon.png" alt="入力・キーボード"></span>
+                <span class="title">入力・キーボード</span></a></li>
+        </ol>
+        </aside>
+        <main class="content">
+        <h1 style="width: auto; font-size: 2.5em; background-color: aliceblue; border: 1px solid #ccc; border-radius: 8px; padding: 0.5em;">システムダッシュボード</h1>
+        <div class="description">
+        <h2 id="power">電源管理</h2>
         <div class="buttons">
             <a href="/cgi-bin/sys_ctl.py?action=shutdown" class="button shutdown">シャットダウン</a>
             <a href="/cgi-bin/sys_ctl.py?action=reboot" class="button reboot">再起動</a>
-            <a href="/cgi-bin/sys_ctl.py?action=suspend" class="button suspend">S3スリープ</a>
+            <a href="/cgi-bin/sys_ctl.py?action=suspend" class="button suspend">スリープ</a>
         </div>
-    </div>
+        <h2 id="cli">CLI,コマンドライン</h2>
+        <p><strong style="color: #f10800;">Ctrl+Alt+F7</strong>でこのブラウザ画面<br>
+        <strong style="color: #3300ec;">Ctrl+Alt+F2</strong>でCLI画面に切り替えます<br>
+        noVNCとかでブラウザ画面でを実装しなかったのは<br>
+        軽量シンプルを目指したのとめんどくさかったからです。</p>
+        <h2 id="network">ネットワーク</h2>
+        <p>まだ</p>
+        <h2 id="bluetooth">bluetooth</h2>
+        <p>まだ</p>
+        <h2 id="vol-bri">音量・明るさ</h2>
+        <p>まだ</p>
+        <h2 id="battery">バッテリー</h2>
+        <p>まだ</p>
+        <h2 id="updates">アップデート</h2>
+        <p>まだ</p>
+        <h2 id="input">入力・キーボード</h2>
+        <p>まだ</p>
+        </div>
+        </main>
+    </article>
+    <script>
+        const list = document.querySelectorAll('.toc li');
+        function activeLink(){
+            list.forEach((item) =>
+            item.classList.remove('active'));
+            this.classList.add('active');
+        }
+        list.forEach((item) =>(
+            item.addEventListener('click', activeLink)
+        ))
+        // JavaScript for interactive elements can be added here
+    </script>
 </body>
 </html>
