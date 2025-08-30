@@ -60,15 +60,53 @@ function updateNetworkUI(networkData) {
     if (networkData.wifi_networks && networkData.wifi_networks.length > 0) {
         html += '<ul style="list-style: none; padding: 0;">';
         networkData.wifi_networks.forEach(wifi => {
-            html += `<li style="text-align: left; padding: 0.5em; border-bottom: 1px solid #eee;"><strong>${escapeHTML(wifi.ssid)}</strong> (強度: ${wifi.signal})</li>`;
-        });
+             html += `<li style="display: flex; justify-content: space-between; align-items: center; padding: 0.5em; border-bottom: 1px solid #eee;">
+                        <span><strong>${escapeHTML(wifi.ssid)}</strong> (強度: ${wifi.signal})</span>
+                        <button class="connect-btn" data-ssid="${escapeHTML(wifi.ssid)}">接続</button>
+                     </li>`;
+                    });
         html += '</ul>';
     } else {
         html += '<p>利用可能なWi-Fiネットワークはありません。</p>';
+         document.querySelectorAll('.connect-btn').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const ssid = event.target.dataset.ssid;
+            connectToWifi(ssid);
+        });
+    });
     }
     
     console.log("ネットワークUIを更新します。"); // チェックポイント8
     networkDiv.innerHTML = html;
+}
+
+async function connectToWifi(ssid) {
+    const password = prompt(`「${ssid}」のパスワードを入力してください:`);
+    if (password === null) { // キャンセルが押された場合
+        return;
+    }
+
+    alert('接続を試みています...');
+
+    try {
+        const response = await fetch('/cgi-bin/connect_wifi.py', {
+            method: 'POST', // パスワードを送るためPOSTメソッドを使用
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `ssid=${encodeURIComponent(ssid)}&password=${encodeURIComponent(password)}`
+        });
+
+        const result = await response.json();
+        alert(result.message); // 結果をアラートで表示
+
+        // 接続結果を反映するために、ネットワーク情報を再取得
+        fetchStatus();
+
+    } catch (error) {
+        console.error('Connection error:', error);
+        alert('接続処理中にエラーが発生しました。');
+    }
 }
 
 function escapeHTML(str) {
