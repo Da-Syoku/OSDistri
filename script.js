@@ -115,3 +115,49 @@ function escapeHTML(str) {
         return {'&': '&amp;','<': '&lt;','>': '&gt;','"': '&quot;',"'": '&#39;'}[match];
     });
 }
+// IP設定フォームのラジオボタンのイベントリスナー
+document.querySelectorAll('input[name="ip_method"]').forEach(radio => {
+    radio.addEventListener('change', (event) => {
+        const staticFields = document.getElementById('static-fields');
+        if (event.target.value === 'manual') {
+            staticFields.style.display = 'block';
+        } else {
+            staticFields.style.display = 'none';
+        }
+    });
+});
+
+// フォーム送信時のイベントリスナー
+document.getElementById('wired-lan-form').addEventListener('submit', async (event) => {
+    event.preventDefault(); // デフォルトのフォーム送信をキャンセル
+
+    const resultDiv = document.getElementById('form-result');
+    resultDiv.innerText = '設定を適用中...';
+    
+    const method = document.querySelector('input[name="ip_method"]:checked').value;
+    const address = document.getElementById('ip_address').value;
+    const gateway = document.getElementById('gateway').value;
+    const dns = document.getElementById('dns').value;
+
+    try {
+        const response = await fetch('/cgi-bin/set_wired_lan.py', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `method=${encodeURIComponent(method)}&address=${encodeURIComponent(address)}&gateway=${encodeURIComponent(gateway)}&dns=${encodeURIComponent(dns)}`
+        });
+
+        const result = await response.json();
+        resultDiv.innerText = result.message;
+        
+        // 成功したら、ネットワーク情報を更新
+        if (result.status === 'success') {
+            setTimeout(fetchStatus, 2000); // 2秒待ってから情報を再取得
+        }
+
+    } catch (error) {
+        console.error('IP Setting Error:', error);
+        resultDiv.innerText = '設定の適用中にエラーが発生しました。';
+    }
+});

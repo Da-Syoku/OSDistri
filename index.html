@@ -46,6 +46,32 @@
         <div id="network-status">
            <p>読み込み中...</p>
         </div>
+         <hr style="margin: 2em 0;">
+    <h3>有線LAN設定</h3>
+    <form id="wired-lan-form" style="text-align: left; max-width: 400px; margin: auto;">
+        <div style="margin-bottom: 1em;">
+            <input type="radio" id="dhcp" name="ip_method" value="auto" checked>
+            <label for="dhcp">DHCP (自動取得)</label>
+        </div>
+        <div style="margin-bottom: 1em;">
+            <input type="radio" id="static" name="ip_method" value="manual">
+            <label for="static">静的IP (手動設定)</label>
+        </div>
+        
+        <div id="static-fields" style="display: none; border-left: 2px solid #ccc; padding-left: 1em;">
+            <p>例: 192.168.1.100/24</p>
+            <input type="text" id="ip_address" placeholder="IPアドレス/サブネットマスク" style="width: 100%; padding: 0.5em; margin-bottom: 0.5em;">
+            
+            <p>例: 192.168.1.1</p>
+            <input type="text" id="gateway" placeholder="ゲートウェイ" style="width: 100%; padding: 0.5em; margin-bottom: 0.5em;">
+            
+            <p>例: 8.8.8.8,1.1.1.1</p>
+            <input type="text" id="dns" placeholder="DNSサーバー (カンマ区切り)" style="width: 100%; padding: 0.5em; margin-bottom: 0.5em;">
+        </div>
+        
+        <button type="submit" style="width: 100%; padding: 0.8em; margin-top: 1em; background-color: #5cb85c; color: white; border: none; border-radius: 5px; cursor: pointer;">設定を適用</button>
+    </form>
+    <div id="form-result" style="margin-top: 1em;"></div>
         <h2 id="bluetooth">bluetooth</h2>
         <p>まだ</p>
         <h2 id="vol-bri">音量・明るさ</h2>
