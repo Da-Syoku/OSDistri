@@ -161,3 +161,29 @@ document.getElementById('wired-lan-form').addEventListener('submit', async (even
         resultDiv.innerText = '設定の適用中にエラーが発生しました。';
     }
 });
+
+document.getElementById('bluetooth-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const resultDiv = document.getElementById('bluetooth-status');
+    resultDiv.innerHTML = '設定を適用中...';
+
+    const state = document.querySelector('input[name="bluetooth_state"]:checked').value;
+
+    try {
+        const response = await fetch('/cgi-bin/set_bluetooth.py', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `state=${encodeURIComponent(state)}`
+        });
+
+        const result = await response.json();
+        resultDiv.innerHTML = result.message;
+
+    } catch (error) {
+        console.error('Bluetooth Setting Error:', error);
+        resultDiv.innerHTML = '設定の適用中にエラーが発生しました。';
+    }
+});

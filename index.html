@@ -42,6 +42,8 @@
         <strong style="color: #3300ec;">Ctrl+Alt+F2</strong>でCLI画面に切り替えます<br>
         noVNCとかでブラウザ画面でを実装しなかったのは<br>
         軽量シンプルを目指したのとめんどくさかったからです。</p></div>
+
+
         <div class="set-sec"><h2 id="network">ネットワーク</h2>
         <div id="network-status">
            <p>読み込み中...</p>
@@ -72,16 +74,44 @@
         <button type="submit" style="width: 100%; padding: 0.8em; margin-top: 1em; background-color: #5cb85c; color: white; border: none; border-radius: 5px; cursor: pointer;">設定を適用</button>
          </form>
         <div id="form-result" style="margin-top: 1em;"></div>
+
+
         <div class="set-sec"><h2 id="bluetooth">bluetooth</h2>
-        <p>まだ</p></div>
+        <p></p>
+        <div id="bluetooth-status">
+           <p>読み込み中...</p>
+         <hr style="margin: 2em 0;">
+          <h3>Bluetooth設定</h3>
+        </div>
+        <form id="bluetooth-form" style="text-align: left; max-width: 400px; margin: auto;">
+            <div style="margin-bottom: 1em;">
+                <label for="bluetooth-name">デバイス名:</label>
+                <input type="text" id="bluetooth-name" placeholder="デバイス名" style="width: 100%; padding: 0.5em; margin-bottom: 0.5em;">
+            </div>
+            <div style="margin-bottom: 1em;">
+                <label for="bluetooth-pairing-code">ペアリングコード:</label>
+                <input type="text" id="bluetooth-pairing-code" placeholder="ペアリングコード" style="width: 100%; padding: 0.5em; margin-bottom: 0.5em;">
+            </div>
+            <button type="submit" style="width: 100%; padding: 0.8em; margin-top: 1em; background-color: #5cb85c; color: white; border: none; border-radius: 5px; cursor: pointer;">接続</button>
+        </form>
+      </div>
+
+
         <div class="set-sec"><h2 id="vol-bri">音量・明るさ</h2>
         <p>まだ</p></div>
+
+
         <div class="set-sec"><h2 id="battery">バッテリー</h2>
         <p>まだ</p></div>
+
+
         <div class="set-sec"><h2 id="updates">アップデート</h2>
         <p>まだ</p></div>
+
+
         <div class="set-sec"><h2 id="input">入力・キーボード</h2>
         <p>まだ</p></div>
+
         </div>
         </main>
     </article>
