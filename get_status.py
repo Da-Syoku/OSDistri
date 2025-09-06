@@ -87,6 +87,30 @@ def get_bluetooth_status():
 
     return status
 
+def get_media_status():
+    """amixerとbrightnessctlを使って音量・明るさの情報を取得する"""
+    status = {'volume': {}, 'brightness': {}}
+    try:
+        # 音量を取得
+        amixer_result = subprocess.run(['amixer', 'get', 'Master'], capture_output=True, text=True, check=True)
+        # 正規表現でパーセントとミュート状態を抽出
+        match = re.search(r'\[(\d{1,3})%\] \[(\w+)\]', amixer_result.stdout)
+        if match:
+            status['volume']['percent'] = int(match.group(1))
+            status['volume']['muted'] = (match.group(2) == 'off')
+
+        # 明るさを取得
+        bright_curr = int(subprocess.run(['brightnessctl', 'get'], capture_output=True, text=True, check=True).stdout.strip())
+        bright_max = int(subprocess.run(['brightnessctl', 'max'], capture_output=True, text=True, check=True).stdout.strip())
+        if bright_max > 0:
+            status['brightness']['percent'] = int((bright_curr / bright_max) * 100)
+            status['brightness']['current'] = bright_curr
+            status['brightness']['max'] = bright_max
+
+    except Exception as e:
+        status['error'] = str(e)
+
+    return status
 
 # --- メイン処理 ---
 if __name__ == '__main__':
@@ -97,5 +121,5 @@ if __name__ == '__main__':
     system_status = {}
     system_status['network'] = get_network_status()
     system_status['bluetooth'] = get_bluetooth_status() # Bluetooth情報を追加
-
+    system_status['media'] = get_media_status()
     print(json.dumps(system_status, indent=4))

@@ -27,7 +27,8 @@ async function fetchStatus() {
         console.log("JSONデータを取得しました:", data); // チェックポイント5
 
         updateNetworkUI(data.network);
-
+        updateBluetoothUI(data.bluetooth);
+        updateMediaUI(data.media);
     } catch (error) {
         console.error('fetchStatusの処理中にエラーが発生しました:', error);
     }
@@ -162,23 +163,6 @@ document.getElementById('wired-lan-form').addEventListener('submit', async (even
     }
 });
 
-// fetchStatus関数の try ブロックの末尾を修正
-async function fetchStatus() {
-    try {
-        // ... (response, data の取得は変更なし) ...
-        const data = await response.json();
-
-        // ネットワーク情報を表示エリアに反映させる
-        updateNetworkUI(data.network);
-        // ▼▼▼ BluetoothのUI更新関数を呼び出す行を追加 ▼▼▼
-        updateBluetoothUI(data.bluetooth);
-
-    } catch (error) {
-        // ... (変更なし) ...
-    }
-}
-
-// --- ▼▼▼ script.jsの末尾にまるごと追記 ▼▼▼ ---
 
 function updateBluetoothUI(btData) {
     const btDiv = document.getElementById('bluetooth-status');
@@ -256,5 +240,76 @@ async function setBluetoothAction(action, mac) {
     } catch (error) {
         console.error('Bluetooth Action Error:', error);
         alert('Bluetooth操作中にエラーが発生しました。');
+    }
+}
+
+// --- ▼▼▼ script.jsの末尾にまるごと追記 ▼▼▼ ---
+
+function updateMediaUI(mediaData) {
+    const mediaDiv = document.getElementById('media-controls');
+    if (!mediaData || mediaData.error) {
+        mediaDiv.innerHTML = `<p style="color: red;">情報取得に失敗しました。</p>`;
+        return;
+    }
+
+    const vol = mediaData.volume;
+    const bright = mediaData.brightness;
+
+    let html = `
+        <div style="margin-bottom: 1.5em;">
+            <h4>音量</h4>
+            <div style="display: flex; align-items: center; gap: 1em;">
+                <span>0</span>
+                <input type="range" id="volume-slider" min="0" max="100" value="${vol.percent}" style="flex-grow: 1;">
+                <span>100</span>
+                <span id="volume-value">${vol.percent}%</span>
+                <button id="mute-btn">${vol.muted ? 'ミュート解除' : 'ミュート'}</button>
+            </div>
+        </div>
+        <div>
+            <h4>画面の明るさ</h4>
+            <div style="display: flex; align-items: center; gap: 1em;">
+                <span>0</span>
+                <input type="range" id="brightness-slider" min="0" max="100" value="${bright.percent}" style="flex-grow: 1;">
+                <span>100</span>
+                <span id="brightness-value">${bright.percent}%</span>
+            </div>
+        </div>
+    `;
+    mediaDiv.innerHTML = html;
+
+    // --- イベントリスナーを設定 ---
+    const volumeSlider = document.getElementById('volume-slider');
+    const brightnessSlider = document.getElementById('brightness-slider');
+    const muteBtn = document.getElementById('mute-btn');
+
+    // スライダーを動かし終わった時にイベント発火
+    volumeSlider.addEventListener('change', () => setMediaAction('set_volume', volumeSlider.value));
+    brightnessSlider.addEventListener('change', () => setMediaAction('set_brightness', brightnessSlider.value));
+    
+    // スライダーを動かしている最中もパーセント表示を更新
+    volumeSlider.addEventListener('input', () => { document.getElementById('volume-value').innerText = `${volumeSlider.value}%`; });
+    brightnessSlider.addEventListener('input', () => { document.getElementById('brightness-value').innerText = `${brightnessSlider.value}%`; });
+    
+    muteBtn.addEventListener('click', () => setMediaAction('toggle_mute', ''));
+}
+
+async function setMediaAction(action, value) {
+    try {
+        const response = await fetch('/cgi-bin/set_media.py', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `action=${encodeURIComponent(action)}&value=${encodeURIComponent(value)}`
+        });
+        const result = await response.json();
+        if (result.status === 'success') {
+            // 成功したら、UIの状態を再取得して更新
+            fetchStatus();
+        } else {
+            alert(`エラー: ${result.message}`);
+        }
+    } catch (error) {
+        console.error('Media Action Error:', error);
+        alert('操作中にエラーが発生しました。');
     }
 }
