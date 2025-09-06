@@ -43,6 +43,51 @@ def get_network_status():
         
     return status
 
+
+def get_bluetooth_status():
+    """bluetoothctlコマンドを使ってBluetoothの情報を取得し、辞書として返す"""
+    status = {'controller': {}, 'devices': []}
+    try:
+        # コントローラーの情報を取得
+        # bluetoothctl show の出力から情報を抜き出す
+        show_result = subprocess.run(['bluetoothctl', 'show'], capture_output=True, text=True, check=True)
+        controller_info = {}
+        for line in show_result.stdout.strip().split('\n'):
+            if 'Controller' in line:
+                parts = line.split()
+                controller_info['mac'] = parts[1]
+                controller_info['name'] = parts[2].strip('()')
+            elif 'Powered' in line:
+                controller_info['powered'] = (line.split(': ')[1] == 'yes')
+            elif 'Pairable' in line:
+                controller_info['pairable'] = (line.split(': ')[1] == 'yes')
+        status['controller'] = controller_info
+
+        # ペアリング済み・接続済みデバイスの情報を取得
+        devices_result = subprocess.run(['bluetoothctl', 'devices'], capture_output=True, text=True, check=True)
+        paired_devices_result = subprocess.run(['bluetoothctl', 'devices', 'Paired'], capture_output=True, text=True, check=True)
+        connected_devices_result = subprocess.run(['bluetoothctl', 'devices', 'Connected'], capture_output=True, text=True, check=True)
+
+        paired_macs = {line.split()[1] for line in paired_devices_result.stdout.strip().split('\n')}
+        connected_macs = {line.split()[1] for line in connected_devices_result.stdout.strip().split('\n')}
+
+        for line in devices_result.stdout.strip().split('\n'):
+            parts = line.split(' ', 2)
+            mac = parts[1]
+            name = parts[2]
+            status['devices'].append({
+                'mac': mac,
+                'name': name,
+                'paired': mac in paired_macs,
+                'connected': mac in connected_macs
+            })
+
+    except Exception as e:
+        status['error'] = str(e)
+
+    return status
+
+
 # --- メイン処理 ---
 if __name__ == '__main__':
     # HTTPヘッダーとJSONデータを出力
@@ -51,6 +96,6 @@ if __name__ == '__main__':
     
     system_status = {}
     system_status['network'] = get_network_status()
-    # 今後、音量やバッテリー情報もここに追加していく
-    
+    system_status['bluetooth'] = get_bluetooth_status() # Bluetooth情報を追加
+
     print(json.dumps(system_status, indent=4))

@@ -162,28 +162,99 @@ document.getElementById('wired-lan-form').addEventListener('submit', async (even
     }
 });
 
-document.getElementById('bluetooth-form').addEventListener('submit', async (event) => {
-    event.preventDefault();
+// fetchStatus関数の try ブロックの末尾を修正
+async function fetchStatus() {
+    try {
+        // ... (response, data の取得は変更なし) ...
+        const data = await response.json();
 
-    const resultDiv = document.getElementById('bluetooth-status');
-    resultDiv.innerHTML = '設定を適用中...';
+        // ネットワーク情報を表示エリアに反映させる
+        updateNetworkUI(data.network);
+        // ▼▼▼ BluetoothのUI更新関数を呼び出す行を追加 ▼▼▼
+        updateBluetoothUI(data.bluetooth);
 
-    const state = document.querySelector('input[name="bluetooth_state"]:checked').value;
+    } catch (error) {
+        // ... (変更なし) ...
+    }
+}
+
+// --- ▼▼▼ script.jsの末尾にまるごと追記 ▼▼▼ ---
+
+function updateBluetoothUI(btData) {
+    const btDiv = document.getElementById('bluetooth-status');
+    if (!btData || btData.error) {
+        btDiv.innerHTML = `<p style="color: red;">Bluetooth情報の取得に失敗しました。</p><p>${btData ? btData.error : ''}</p>`;
+        return;
+    }
+
+    let html = '<h3>コントローラー</h3>';
+    if (btData.controller && btData.controller.mac) {
+        html += `<p><strong>${btData.controller.name}</strong> (${btData.controller.mac})</p>`;
+        // トグルスイッチ
+        html += `
+            <div style="display: flex; gap: 1em; margin-top: 1em;">
+                <label>電源: <button class="bt-action-btn" data-action="${btData.controller.powered ? 'power_off' : 'power_on'}">${btData.controller.powered ? 'ON' : 'OFF'}</button></label>
+                <label>ペアリング可: <button class="bt-action-btn" data-action="${btData.controller.pairable ? 'pairable_off' : 'pairable_on'}">${btData.controller.pairable ? 'ON' : 'OFF'}</button></label>
+            </div>
+        `;
+    } else {
+        html += '<p>コントローラーが見つかりません。</p>';
+    }
+
+    html += '<h3 style="margin-top: 1.5em;">デバイス</h3>';
+    html += `<button class="bt-action-btn" data-action="scan">デバイスをスキャン</button>`;
+
+    if (btData.devices && btData.devices.length > 0) {
+        html += '<ul style="list-style: none; padding: 0; margin-top: 1em;">';
+        btData.devices.forEach(dev => {
+            html += `<li style="display: flex; justify-content: space-between; align-items: center; padding: 0.5em; border-bottom: 1px solid #eee;">
+                        <span><strong>${escapeHTML(dev.name)}</strong><br><small>${dev.mac}</small></span>
+                        <span style="display: flex; gap: 0.5em;">
+                            ${!dev.paired ? `<button class="bt-action-btn" data-action="pair" data-mac="${dev.mac}">ペア</button>` : ''}
+                            ${dev.paired && !dev.connected ? `<button class="bt-action-btn" data-action="connect" data-mac="${dev.mac}">接続</button>` : ''}
+                            ${dev.connected ? `<button class="bt-action-btn" data-action="disconnect" data-mac="${dev.mac}">切断</button>` : ''}
+                        </span>
+                     </li>`;
+        });
+        html += '</ul>';
+    } else {
+        html += '<p style="margin-top: 1em;">デバイスが見つかりません。</p>';
+    }
+
+    btDiv.innerHTML = html;
+
+    // 作成した全てのボタンにイベントリスナーを設定
+    document.querySelectorAll('.bt-action-btn').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const action = event.target.dataset.action;
+            const mac = event.target.dataset.mac || ''; // MACアドレスがない場合もある
+            setBluetoothAction(action, mac);
+        });
+    });
+}
+
+async function setBluetoothAction(action, mac) {
+    if (action === 'scan') {
+        alert('5秒間デバイスをスキャンします...');
+    } else {
+        alert(`操作を実行しています: ${action} ${mac}`);
+    }
 
     try {
         const response = await fetch('/cgi-bin/set_bluetooth.py', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `state=${encodeURIComponent(state)}`
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `action=${encodeURIComponent(action)}&mac=${encodeURIComponent(mac)}`
         });
-
+        
         const result = await response.json();
-        resultDiv.innerHTML = result.message;
+        alert(result.message);
+
+        // 状態を更新するために、情報を再取得
+        fetchStatus();
 
     } catch (error) {
-        console.error('Bluetooth Setting Error:', error);
-        resultDiv.innerHTML = '設定の適用中にエラーが発生しました。';
+        console.error('Bluetooth Action Error:', error);
+        alert('Bluetooth操作中にエラーが発生しました。');
     }
-});
+}

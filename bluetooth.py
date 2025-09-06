@@ -1,50 +1,75 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import os
 import sys
+import os
 import json
+import urllib.parse
+import subprocess
+import time
 
-def set_bluetooth_state(state):
-    # Bluetoothの状態を設定する関数
-    if state not in ["on", "off"]:
-        print("無効な状態です。'on'または'off'を指定してください。")
-        return
+def run_bt_command(command_string):
+    """対話的なbluetoothctlにコマンドをパイプで送り込み、実行する"""
+    # echo -e '...' は改行を含む文字列をbluetoothctlの標準入力に渡すためのテクニック
+    return subprocess.run(
+        f"echo -e '{command_string}' | bluetoothctl",
+        shell=True, capture_output=True, text=True
+    )
 
-    # Bluetoothの状態を設定するコマンドを実行
-    command = f"bluetoothctl power {state}"
-    os.system(command)
+def set_bluetooth_action():
+    response = {'status': 'error', 'message': '不明なエラーです。'}
+    try:
+        content_length = int(os.environ.get("CONTENT_LENGTH", 0))
+        post_data_raw = sys.stdin.read(content_length)
+        params = urllib.parse.parse_qs(post_data_raw)
+        
+        action = params.get('action', [''])[0]
+        mac = params.get('mac', [''])[0]
 
-    # Bluetoothの状態を取得するコマンドを実行
-    command = "bluetoothctl show"
-    output = os.popen(command).read()
-    print("Bluetoothの状態:")
-    print(output)
+        cmd = ""
+        if action == 'power_on':
+            cmd = 'power on'
+        elif action == 'power_off':
+            cmd = 'power off'
+        elif action == 'pairable_on':
+            cmd = 'pairable on'
+        elif action == 'pairable_off':
+            cmd = 'pairable off'
+        elif action == 'scan':
+            # スキャンは少し特殊。5秒間スキャンして停止する。
+            run_bt_command('scan on')
+            time.sleep(5)
+            run_bt_command('scan off')
+            response['status'] = 'success'
+            response['message'] = '5秒間のスキャンが完了しました。'
+            return response
+        elif action == 'pair':
+            cmd = f'pair {mac}'
+        elif action == 'connect':
+            cmd = f'connect {mac}'
+        elif action == 'disconnect':
+            cmd = f'disconnect {mac}'
+        else:
+            response['message'] = '無効なアクションです。'
+            return response
 
-    # Bluetoothの状態をJSON形式で返す
-    status = {}
-    for line in output.splitlines():
-        if line.startswith("  "):
-            key, value = line.split(":", 1)
-            status[key.strip()] = value.strip()
-    return json.dumps(status, ensure_ascii=False)
+        result = run_bt_command(cmd)
+
+        if "failed" in result.stdout.lower() or "error" in result.stdout.lower():
+            response['message'] = f'操作に失敗しました: {result.stdout.strip()}'
+        else:
+            response['status'] = 'success'
+            response['message'] = f'操作が完了しました: {result.stdout.strip()}'
+
+    except Exception as e:
+        response['message'] = f'サーバー内部でエラーが発生しました: {str(e)}'
+        
+    return response
 
 # --- メイン処理 ---
 if __name__ == '__main__':
     print("Content-Type: application/json; charset=utf-8")
     print()
-
-    # コマンドライン引数からBluetoothの状態を取得
-    if len(sys.argv) > 1:
-        state = sys.argv[1].lower()
-    else:
-        state = "on"  # デフォルトは'on'
-
-    result = set_bluetooth_state(state)
-    print(result)
-
-    # 結果をJSON形式で返す
-    print("Content-Type: application/json; charset=utf-8")
-    print()
-    print(result)
-
+    
+    result = set_bluetooth_action()
+    print(json.dumps(result, indent=4))
