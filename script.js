@@ -29,6 +29,7 @@ async function fetchStatus() {
         updateNetworkUI(data.network);
         updateBluetoothUI(data.bluetooth);
         updateMediaUI(data.media);
+         updateBatteryUI(data.battery);
     } catch (error) {
         console.error('fetchStatusの処理中にエラーが発生しました:', error);
     }
@@ -312,4 +313,54 @@ async function setMediaAction(action, value) {
         console.error('Media Action Error:', error);
         alert('操作中にエラーが発生しました。');
     }
+}
+
+function updateBatteryUI(batteryData) {
+    const batteryDiv = document.getElementById('battery-status');
+    if (!batteryData || batteryData.error) {
+        batteryDiv.innerHTML = `<p>${batteryData ? batteryData.error : '情報なし'}</p>`;
+        return;
+    }
+
+    // 充電状態に応じてアイコンとテキスト、色を決定
+    let statusIcon = '🔋';
+    let statusText = batteryData.status;
+    let statusColor = '#333';
+
+    if (batteryData.status === 'Charging') {
+        statusIcon = '🔌';
+        statusText = '充電中';
+        statusColor = '#28a745'; // 緑色
+    } else if (batteryData.status === 'Discharging') {
+        statusText = '放電中';
+        statusColor = '#0275d8'; // 青色
+    } else if (batteryData.status === 'Full') {
+        statusIcon = '🔌';
+        statusText = '満充電';
+    }
+
+    let html = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1em 2em; text-align: left;">
+            <div>
+                <h4>現在の残量</h4>
+                <div style="display: flex; align-items: center; font-size: 1.5em; font-weight: bold;">
+                    <span style="font-size: 2em; margin-right: 0.2em;">${statusIcon}</span>
+                    <span>${batteryData.percent}%</span>
+                </div>
+                <progress value="${batteryData.percent}" max="100" style="width: 100%;"></progress>
+                <p style="color: ${statusColor};">${statusText}</p>
+            </div>
+            <div>
+                <h4>バッテリー消耗度</h4>
+                <p style="font-size: 1.2em; font-weight: bold;">現在の最大容量: ${batteryData.health_percent}%</p>
+                <progress value="${batteryData.health_percent}" max="100" style="width: 100%;"></progress>
+                <p style="font-size: 0.8em; color: #666;">
+                    設計容量: ${batteryData.design_capacity_mwh} MWh<br>
+                    現在のフル充電容量: ${batteryData.last_full_capacity_mwh} MWh
+                </p>
+            </div>
+        </div>
+    `;
+
+    batteryDiv.innerHTML = html;
 }

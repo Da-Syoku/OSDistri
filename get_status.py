@@ -112,6 +112,41 @@ def get_media_status():
 
     return status
 
+def get_battery_status():
+    """/sys/class/power_supply/ からバッテリー情報を取得する"""
+    status = {}
+    try:
+        # BAT0, BAT1など、システムのバッテリーデバイスを探す
+        battery_dir = glob.glob('/sys/class/power_supply/BAT*')[0]
+
+        # 各ファイルを読み取って情報を取得
+        with open(os.path.join(battery_dir, 'capacity')) as f:
+            status['percent'] = int(f.read().strip())
+
+        with open(os.path.join(battery_dir, 'status')) as f:
+            status['status'] = f.read().strip() # "Charging", "Discharging", "Full"など
+
+        # バッテリー消耗度を計算
+        with open(os.path.join(battery_dir, 'energy_full_design')) as f:
+            design_capacity = int(f.read().strip())
+
+        with open(os.path.join(battery_dir, 'energy_full')) as f:
+            last_full_capacity = int(f.read().strip())
+
+        if design_capacity > 0:
+            health_percent = (last_full_capacity / design_capacity) * 100
+            status['health_percent'] = int(health_percent)
+            status['design_capacity_mwh'] = design_capacity / 1000
+            status['last_full_capacity_mwh'] = last_full_capacity / 1000
+
+    except IndexError:
+        status['error'] = 'バッテリーが見つかりません。' # バッテリーがないPCの場合
+    except Exception as e:
+        status['error'] = f'バッテリー情報の取得エラー: {str(e)}'
+
+    return status
+
+
 # --- メイン処理 ---
 if __name__ == '__main__':
     # HTTPヘッダーとJSONデータを出力
@@ -122,4 +157,5 @@ if __name__ == '__main__':
     system_status['network'] = get_network_status()
     system_status['bluetooth'] = get_bluetooth_status() # Bluetooth情報を追加
     system_status['media'] = get_media_status()
+    system_status['battery'] = get_battery_status()
     print(json.dumps(system_status, indent=4))
