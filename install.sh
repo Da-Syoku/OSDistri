@@ -3,19 +3,21 @@
 #dialog --title "インストール開始" --msgbox "Arch Linuxインストーラーへようこそ！\nこのインストーラーはUEFI/GPT環境向けです。" 8 40
 dialog --title "Installation Start" --msgbox "Welcome to the Arch Linux Installer!\nThis installer is for UEFI/GPT environments." 8 40
 
+export LANG=ja_JP.UTF-8
+export LC_ALL=ja_JP.UTF-8
 locale-gen
 
 # ディスク選択
-DISK=$(dialog --menu "インストール先ディスクを選択してください" 20 60 10 1 "/dev/sda" "ディスク A" 2 "/dev/sdb" "ディスク B" 2>/dev/tty)
+DISK=$(dialog --menu "インストール先ディスクを選択してください-Select the installation disk" 20 60 10 1 "/dev/sda" "ディスクDisk A" 2 "/dev/sdb" "ディスクDisk B" 2>/dev/tty)
 if [ -z "$DISK" ]; then
-    echo "ディスクが選択されませんでした。終了します。"
+    echo "No disk selected. Exiting.ディスクが選択されませんでした。終了します。"
     exit 1
 fi
 
 # パーティション自動作成
-dialog --yesno "選択したディスク ($DISK) の全データを消去して、自動パーティショニングしますか？" 8 60
+dialog --yesno "All data on the selected disk ($DISK) will be erased.\nDo you want to proceed with automatic partitioning?選択したディスク ($DISK) の全データを消去して、自動パーティショニングしますか？" 8 60
 if [ $? -eq 0 ]; then
-    echo "パーティショニングを開始します..."
+    echo "パーティショニングを開始します...tarting partitioning.."
     # 既存のパーティションを削除
     sgdisk --zap-all $DISK
     # EFIパーティションの作成 (512MB)
@@ -23,18 +25,18 @@ if [ $? -eq 0 ]; then
     # ルートパーティションの作成 (残りすべて)
     sgdisk -n 2:0:0 -t 2:8300 -c 2:"Linux Root" $DISK
 else
-    dialog --msgbox "手動でパーティションを作成してください。cfdiskを起動します。" 8 40
+    dialog --msgbox "Please create partitions manually. Starting cfdisk.手動でパーティションを作成してください。cfdiskを起動します。" 8 40
     cfdisk $DISK
     # 手動パーティション後の処理は省略
 fi
 
 # フォーマット
-dialog --msgbox "パーティションをフォーマットします。" 8 40
+dialog --msgbox "Formatting partitionsパーティションをフォーマットします。" 8 40
 mkfs.fat -F32 "${DISK}1"
 mkfs.ext4 "${DISK}2"
 
 # マウント
-dialog --msgbox "パーティションをマウントします。" 8 40
+dialog --msgbox "Mounting partitionsパーティションをマウントします。" 8 40
 mount "${DISK}2" /mnt
 mkdir -p /mnt/boot/efi
 mount "${DISK}1" /mnt/boot/efi
@@ -42,32 +44,32 @@ mount "${DISK}1" /mnt/boot/efi
 # --- ここからユーザー入力部分 ---
 
 # ユーザー名の設定
-USERNAME=$(dialog --inputbox "新しいユーザー名を入力してください" 8 40 3>&1 1>&2 2>&3)
+USERNAME=$(dialog --inputbox "enter ne user 新しいユーザー名を入力してください" 8 40 3>&1 1>&2 2>&3)
 if [ -z "$USERNAME" ]; then
-    echo "ユーザー名が入力されませんでした。終了します。"
+    echo "No usrname enetered so exitng ユーザー名が入力されませんでした。終了します。"
     exit 1
 fi
 
 # パスワード設定
-PASSWORD=$(dialog --passwordbox "パスワードを入力してください" 8 40 3>&1 1>&2 2>&3)
+PASSWORD=$(dialog --passwordbox "enetr password パスワードを入力してください" 8 40 3>&1 1>&2 2>&3)
 if [ -z "$PASSWORD" ]; then
-    echo "パスワードが入力されませんでした。終了します。"
+    echo "No password entered so exiting パスワードが入力されませんでした。終了します。"
     exit 1
 fi
-RE_PASSWORD=$(dialog --passwordbox "パスワードを再入力してください" 8 40 3>&1 1>&2 2>&3)
+RE_PASSWORD=$(dialog --passwordbox "repite password パスワードを再入力してください" 8 40 3>&1 1>&2 2>&3)
 if [ "$PASSWORD" != "$RE_PASSWORD" ]; then
-    dialog --msgbox "パスワードが一致しません。終了します。" 8 40
+    dialog --msgbox "passwd not match パスワードが一致しません。終了します。" 8 40
     exit 1
 fi
 
 # --- ここからインストール処理 ---
-dialog --infobox "ベースシステムをインストールしています..." 8 40
+dialog --infobox "installing base sys ベースシステムをインストールしています..." 8 40
 pacstrap /mnt base linux linux-firmware
 
-dialog --infobox "fstabを生成しています..." 8 40
+dialog --infobox "generate fstab fstabを生成しています..." 8 40
 genfstab -U /mnt >> /mnt/etc/fstab
 
-dialog --infobox "初期設定をしています..." 8 40
+dialog --infobox "performing install setup 初期設定をしています..." 8 40
 arch-chroot /mnt /bin/bash <<EOF
     # タイムゾーンの設定
     ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
@@ -100,5 +102,5 @@ arch-chroot /mnt /bin/bash <<EOF
 
 EOF
 
-dialog --msgbox "インストールが完了しました！\n再起動してください。" 8 40
+dialog --msgbox "all done! reboot now?再起動しますか？ \nRebooting" 8 40
 reboot
