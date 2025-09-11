@@ -92,14 +92,13 @@ fi
 # --- Installation Process ---
 dialog --infobox "Installing base system and applications...\n\nThis may take a while." 8 50
 # NOTE: Add all desired packages to this pacstrap command
-pacstrap /mnt base linux linux-firmware dialog rsync httpd
+pacstrap /mnt base linux linux-firmware dialog rsync dhcpcd networkmanager sudo vim
+dialog --infobox "Copying custom files from the live environment..." 8 50
+# Copy all files from airootfs to the installed system
+rsync -aAXv --exclude={"/dev/*","/proc/*","/sys/*","/tmp/*","/run/*","/mnt/*","/media/*","/lost+found"} / /mnt
 
 dialog --infobox "Generating fstab..." 6 50
 genfstab -U /mnt >> /mnt/etc/fstab
-
-dialog --infobox "Copying custom files from the live environment..." 8 50
-# Copy all files from airootfs to the installed system
-rsync -a -r --progress --exclude=/dev --exclude=/proc --exclude=/sys --exclude=/run --exclude=/mnt --exclude=/tmp --exclude=/work --exclude=/out / /mnt
 
 # --- Chroot and Post-installation Setup ---
 dialog --infobox "Performing final system configurations..." 8 50
@@ -109,9 +108,9 @@ arch-chroot /mnt /bin/bash <<EOF
     hwclock --systohc
 
     # Locale
-    echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+    echo "ja_JP.UTF-8 UTF-8" >> /etc/locale.gen
     locale-gen
-    echo "LANG=en_US.UTF-8" > /etc/locale.conf
+    echo "LANG=ja_JP.UTF-8" > /etc/locale.conf
 
     # Hostname
     echo "$HOSTNAME" > /etc/hostname
