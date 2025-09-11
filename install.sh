@@ -1,106 +1,135 @@
 #!/bin/bash
 
-#dialog --title "インストール開始" --msgbox "Arch Linuxインストーラーへようこそ！\nこのインストーラーはUEFI/GPT環境向けです。" 8 40
-dialog --title "Installation Start" --msgbox "Welcome to the Arch Linux Installer!\nThis installer is for UEFI/GPT environments." 8 40
+# --- Start installation ---
+dialog --title "Arch Linux Installer" --msgbox "Welcome to the Arch Linux Installer!\n\nThis script will guide you through the installation process." 8 50
 
-export LANG=ja_JP.UTF-8
-export LC_ALL=ja_JP.UTF-8
-locale-gen
+# --- Network connection ---
+dialog --title "Network Connection" --msgbox "Attempting to connect to a Wi-Fi network.\n\nMake sure your Wi-Fi device is powered on." 8 50
 
-# ディスク選択
-DISK=$(dialog --menu "インストール先ディスクを選択してください-Select the installation disk" 20 60 10 1 "/dev/sda" "ディスクDisk A" 2 "/dev/sdb" "ディスクDisk B" 2>/dev/tty)
-if [ -z "$DISK" ]; then
-    echo "No disk selected. Exiting.ディスクが選択されませんでした。終了します。"
+# Get Wi-Fi device
+WIFI_DEV=$(iwctl device list | grep 'station' | awk '{print $1}')
+if [ -z "$WIFI_DEV" ]; then
+    dialog --title "Error" --msgbox "No Wi-Fi device found.\nPlease try a wired connection." 8 50
     exit 1
 fi
 
-# パーティション自動作成
-dialog --yesno "All data on the selected disk ($DISK) will be erased.\nDo you want to proceed with automatic partitioning?選択したディスク ($DISK) の全データを消去して、自動パーティショニングしますか？" 8 60
-if [ $? -eq 0 ]; then
-    echo "パーティショニングを開始します...tarting partitioning.."
-    # 既存のパーティションを削除
-    sgdisk --zap-all $DISK
-    # EFIパーティションの作成 (512MB)
-    sgdisk -n 1:0:+512MiB -t 1:ef00 -c 1:"EFI System" $DISK
-    # ルートパーティションの作成 (残りすべて)
-    sgdisk -n 2:0:0 -t 2:8300 -c 2:"Linux Root" $DISK
+# Enable Wi-Fi device
+iwctl device "$WIFI_DEV" set-property Powered on
+
+# Scan and select SSID
+iwctl station "$WIFI_DEV" scan
+SSID_LIST=$(iwctl station "$WIFI_DEV" get-networks | sed '1d' | awk '{print $2}' | sort -u)
+
+SSID=$(dialog --title "SSID Selection" --menu "Select a network to connect to:" 20 60 10 $SSID_LIST 3>&1 1>&2 2>&3)
+if [ -z "$SSID" ]; then
+    dialog --title "Skipped" --msgbox "Network connection skipped. Please check your connection manually." 8 50
 else
-    dialog --msgbox "Please create partitions manually. Starting cfdisk.手動でパーティションを作成してください。cfdiskを起動します。" 8 40
-    cfdisk $DISK
-    # 手動パーティション後の処理は省略
+    # Enter password and connect
+    PASSWORD=$(dialog --title "Password Entry" --passwordbox "Enter the password for '$SSID':" 8 50 3>&1 1>&2 2>&3)
+    dialog --infobox "Connecting to '$SSID'..." 6 50
+    
+    if ! iwctl --passphrase "$PASSWORD" station "$WIFI_DEV" connect "$SSID"; then
+        dialog --title "Error" --msgbox "Failed to connect. Please check the password or try again." 8 50
+    else
+        dhcpcd
+        dialog --title "Success" --msgbox "Successfully connected to the network!" 6 50
+    fi
 fi
 
-# フォーマット
-dialog --msgbox "Formatting partitionsパーティションをフォーマットします。" 8 40
+# --- Disk Partitioning and Formatting ---
+dialog --title "Disk Preparation" --msgbox "Next, we will prepare the disk for installation.\n\nAll data on the selected disk will be erased." 8 50
+
+# Select disk
+DISK=$(dialog --menu "Select the installation disk:" 20 60 10 1 "/dev/sda" "Disk A" 2 "/dev/sdb" "Disk B" 2>/dev/tty)
+if [ -z "$DISK" ]; then
+    dialog --title "Error" --msgbox "No disk selected. Exiting." 8 50
+    exit 1
+fi
+
+dialog --yesno "Proceed with automatic partitioning on $DISK?\n(UEFI/GPT - 512MiB EFI, rest Root)" 8 60
+if [ $? -eq 0 ]; then
+    # Automatic partitioning
+    sgdisk --zap-all "$DISK"
+    sgdisk -n 1:0:+512MiB -t 1:ef00 -c 1:"EFI System" "$DISK"
+    sgdisk -n 2:0:0 -t 2:8300 -c 2:"Linux Root" "$DISK"
+else
+    dialog --msgbox "Please partition the disk manually using cfdisk." 8 50
+    cfdisk "$DISK"
+fi
+
+# Format partitions
+dialog --msgbox "Formatting partitions..." 8 50
 mkfs.fat -F32 "${DISK}1"
 mkfs.ext4 "${DISK}2"
 
-# マウント
-dialog --msgbox "Mounting partitionsパーティションをマウントします。" 8 40
+# Mount partitions
 mount "${DISK}2" /mnt
 mkdir -p /mnt/boot/efi
 mount "${DISK}1" /mnt/boot/efi
 
-# --- ここからユーザー入力部分 ---
+# --- User and Hostname Setup ---
+dialog --title "User Setup" --msgbox "Now, let's create a user and set a password." 8 50
 
-# ユーザー名の設定
-USERNAME=$(dialog --inputbox "enter ne user 新しいユーザー名を入力してください" 8 40 3>&1 1>&2 2>&3)
+USERNAME=$(dialog --inputbox "Enter a new username:" 8 50 3>&1 1>&2 2>&3)
 if [ -z "$USERNAME" ]; then
-    echo "No usrname enetered so exitng ユーザー名が入力されませんでした。終了します。"
+    dialog --title "Error" --msgbox "Username cannot be empty. Exiting." 8 50
     exit 1
 fi
 
-# パスワード設定
-PASSWORD=$(dialog --passwordbox "enetr password パスワードを入力してください" 8 40 3>&1 1>&2 2>&3)
-if [ -z "$PASSWORD" ]; then
-    echo "No password entered so exiting パスワードが入力されませんでした。終了します。"
-    exit 1
-fi
-RE_PASSWORD=$(dialog --passwordbox "repite password パスワードを再入力してください" 8 40 3>&1 1>&2 2>&3)
+PASSWORD=$(dialog --passwordbox "Enter password for '$USERNAME':" 8 50 3>&1 1>&2 2>&3)
+RE_PASSWORD=$(dialog --passwordbox "Re-enter password:" 8 50 3>&1 1>&2 2>&3)
 if [ "$PASSWORD" != "$RE_PASSWORD" ]; then
-    dialog --msgbox "passwd not match パスワードが一致しません。終了します。" 8 40
+    dialog --title "Error" --msgbox "Passwords do not match. Exiting." 8 50
     exit 1
 fi
 
-# --- ここからインストール処理 ---
-dialog --infobox "installing base sys ベースシステムをインストールしています..." 8 40
-pacstrap /mnt base linux linux-firmware
+HOSTNAME=$(dialog --inputbox "Enter a hostname for this computer:" 8 50 "my-arch-pc" 3>&1 1>&2 2>&3)
+if [ -z "$HOSTNAME" ]; then
+    dialog --title "Error" --msgbox "Hostname cannot be empty. Exiting." 8 50
+    exit 1
+fi
 
-dialog --infobox "generate fstab fstabを生成しています..." 8 40
+# --- Installation Process ---
+dialog --infobox "Installing base system and applications...\n\nThis may take a while." 8 50
+# NOTE: Add all desired packages to this pacstrap command
+pacstrap /mnt base linux linux-firmware dialog rsync httpd
+
+dialog --infobox "Generating fstab..." 6 50
 genfstab -U /mnt >> /mnt/etc/fstab
 
-dialog --infobox "performing install setup 初期設定をしています..." 8 40
+dialog --infobox "Copying custom files from the live environment..." 8 50
+# Copy all files from airootfs to the installed system
+rsync -a -r --progress --exclude=/dev --exclude=/proc --exclude=/sys --exclude=/run --exclude=/mnt --exclude=/tmp --exclude=/work --exclude=/out / /mnt
+
+# --- Chroot and Post-installation Setup ---
+dialog --infobox "Performing final system configurations..." 8 50
 arch-chroot /mnt /bin/bash <<EOF
-    # タイムゾーンの設定
+    # Timezone
     ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
     hwclock --systohc
 
-    # ロケール設定
-    #echo "ja_JP.UTF-8 UTF-8" >> /etc/locale.gen
-    #locale-gen
-    #echo "LANG=ja_JP.UTF-8" > /etc/locale.conf
+    # Locale
+    echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+    locale-gen
+    echo "LANG=en_US.UTF-8" > /etc/locale.conf
 
-    # ホスト名の設定
-    echo "my-arch-pc" > /etc/hostname
+    # Hostname
+    echo "$HOSTNAME" > /etc/hostname
 
-    # rootパスワードの設定
+    # Root password
     echo "root:$(openssl passwd -1 -salt xyz)" | chpasswd
 
-    # 新しいユーザーの作成とパスワード設定
+    # User creation and sudo privileges
     useradd -m -G wheel,video,audio,storage $USERNAME
     echo "$USERNAME:$PASSWORD" | chpasswd
-    
-    # sudo権限を付与
     echo "%wheel ALL=(ALL:ALL) ALL" >> /etc/sudoers
 
-    # NetworkManagerを有効化
+    # Enable essential services
     systemctl enable NetworkManager
-
-    # Airootfsからカスタムファイルをコピー
-    # ライブ環境からインストール先へファイルをコピー
-    # cp -r /srv/http/* /srv/http/   <- カスタムファイルのコピー
+    systemctl enable dhcpcd
 
 EOF
 
-dialog --msgbox "all done! reboot now?再起動しますか？ \nRebooting" 8 40
+# --- Finalization ---
+dialog --msgbox "Installation complete!\n\nThe system will now reboot." 8 50
 reboot
