@@ -1,7 +1,11 @@
 #!/bin/bash
 
 # 日本語表示のための設定 (ダイアログ表示用)
+export LANG=ja_JP.UTF-8
+export LC_ALL=ja_JP.UTF-8
+locale-gen
 export LC_ALL=C
+
 #dialog --title "インストール開始" --msgbox "Arch Linuxインストーラーへようこそ！\nこのインストーラーはUEFI/GPT環境向けです。" 8 40
 dialog --title "Installation Start" --msgbox "Welcome to the Arch Linux Installer!\nThis installer is for UEFI/GPT environments." 8 40
 export LANG=ja_JP.UTF-8
